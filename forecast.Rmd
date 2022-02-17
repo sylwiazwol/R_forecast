@@ -1,0 +1,174 @@
+---
+title: "Prognozowanie dziennych cen zamknięcia spółki KGHM"
+output: html_document
+---
+
+
+## Pobranie danych
+```{r}
+cena = read.csv(file = 'kgh_d.csv')
+head(cena)
+```
+
+
+## Zapis danych cen zamknięcia 
+
+```{r}
+cena = ts(cena[,5], start = c(2010,1), end =  c(2020,1), frequency = 365)
+plot(cena, xlab='Rok', ylab = 'Cena zamknięcia', main="Wykres cen zamknięcia")
+summary(cena)
+```
+
+
+## Wykresy ACF i PACF
+
+```{r}
+require(forecast)
+tsdisplay(cena, lag.max=500, main="Rozkład danych i funkcje ACF i PACF")
+```
+
+## Dekompozycja zbioru
+```{r}
+dekompozycja.ceny <-decompose(cena, type="multiplicative")
+plot(dekompozycja.ceny)
+```
+
+
+## Różnicowanie i wykres
+```{r}
+cena.diff <- diff(cena)
+tsdisplay(cena.diff, lag.max=100, main="Rozkład zróżnicowanych danych i funkcje ACF i PACF")
+```
+
+# Prognozowanie
+
+## Prognozowanie za pomocą średniej ruchomej
+```{r}
+srednia.ruch.cena <- meanf(x=cena, h=365)
+plot(srednia.ruch.cena, main= "Prognoza cena zamknięcia na podstawie średniej ruchomej")
+```
+
+
+### Badanie reszt 
+
+```{r}
+ocena.sr.ruch <- accuracy(srednia.ruch.cena)
+ocena.sr.ruch
+reszty.sr.ruch <- residuals(srednia.ruch.cena)
+plot(reszty.sr.ruch, main = "Reszty dla prognozy za pomocą średniej ruchomej")
+par(mfrow=c(1,2))
+Acf(reszty.sr.ruch, main = "ACF dla reszt")
+hist(reszty.sr.ruch, main = "Histogram reszt")
+```
+
+
+## Prognozowanie za pomocą średniej ruchomej - po eliminacji trendu
+
+```{r}
+srednia.ruch.diff <-meanf(x=cena.diff, h=365)
+plot(srednia.ruch.diff, main="Prognoza cen zamknięcia po eliminacji trendu")
+```
+### Badanie reszt 
+
+```{r}
+ocena.ruch.diff <- accuracy(srednia.ruch.diff)
+ocena.ruch.diff
+reszty.ruch.diff <- residuals(srednia.ruch.diff)
+plot(reszty.ruch.diff, main = "Reszty dla prognozy za pomocą średniej ruchomej po eliminacji trendu")
+par(mfrow=c(1,2))
+Acf(reszty.ruch.diff, main = "ACF dla reszt")
+hist(reszty.ruch.diff, main = "Histogram reszt")
+```
+
+
+## Prognozowanie naiwne
+```{r}
+naiwna.cena <- snaive(x=cena, h=365)
+plot(naiwna.cena, main="Cena zamknięcia - prognoza naiwna")
+```
+
+### Badanie reszt 
+
+```{r}
+ocena.naiwna <- accuracy(naiwna.cena)
+ocena.naiwna
+reszty.naiwna <- residuals(naiwna.cena)
+plot(reszty.naiwna, main = "Reszty dla prognozy naiwnej")
+par(mfrow=c(1,2))
+Acf(reszty.naiwna, main = "ACF dla reszt")
+hist(reszty.naiwna, main = "Histogram reszt ")
+```
+
+
+
+
+## Prognozowanie naiwne z dryfem
+
+```{r}
+naiwna.dryf.cena <- rwf(x=cena, drift=TRUE, h=365)
+plot(naiwna.dryf.cena, main="Cena zamknięcia - prognoza naiwna z dryfem")
+```
+
+
+### Badanie reszt 
+
+```{r}
+ocena.naiwna.dryf <- accuracy(naiwna.dryf.cena)
+ocena.naiwna.dryf
+reszty.naiwna.dryf <- residuals(naiwna.dryf.cena)
+plot(reszty.naiwna.dryf, main = "Reszty dla prognozy naiwnej z dryfem")
+par(mfrow=c(1,2))
+Acf(reszty.naiwna.dryf, main = "ACF dla reszt")
+hist(reszty.naiwna.dryf, main = "Histogram reszt")
+```
+
+
+
+## Prognoza naiwna z dryfem – dane logarytmowane
+
+```{r}
+naiwna.dryf.log <- rwf(x=BoxCox(cena, lambda=0), drift=TRUE, h=365)
+plot(naiwna.dryf.log , main="log(cena) - prognoza naiwna z dryfem")
+```
+
+
+### Badanie reszt 
+
+```{r}
+ocena.naiwna.dryf.log <- accuracy(naiwna.dryf.log)
+ocena.naiwna.dryf.log
+reszty.naiwna.dryf.log <- residuals(naiwna.dryf.log)
+plot(reszty.naiwna.dryf.log, main = "Reszty dla prognozy naiwnej (log) z dryfem")
+par(mfrow=c(1,2))
+Acf(reszty.naiwna.dryf.log, main = "ACF dla reszt")
+hist(reszty.naiwna.dryf.log, main = "Histogram reszt")
+```
+
+
+## Prognozowanie na podstawie modelu ARIMA
+```{r}
+automatyczna.arima <- auto.arima(cena)
+prognoza.arima <-forecast(automatyczna.arima, h=365, fan=TRUE)
+plot(prognoza.arima, main="Prognoza modelu ARIMA")
+```
+
+
+### Badanie reszt 
+
+```{r}
+ocena.arima <- accuracy(prognoza.arima)
+ocena.arima
+reszty.arima <- residuals(prognoza.arima)
+plot(reszty.arima, main = "Reszty dla prognozy ARIMA")
+par(mfrow=c(1,2))
+Acf(reszty.arima, main = "ACF dla reszt")
+hist(reszty.arima, main = "Histogram reszt")
+```
+
+
+
+
+
+
+
+
